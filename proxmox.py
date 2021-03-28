@@ -208,14 +208,26 @@ class ProxmoxAPI(object):
             if type(networks) is dict:
                 for network in networks:
                     for ip_address in ['ip-address']:
-                         try:
-                             # IP address validation
-                             if socket.inet_aton(ip_address):
-                                 # Ignore localhost
-                                 if ip_address != '127.0.0.1':
-                                     return ip_address
-                         except socket.error:
-                             pass
+                        try:
+                            # IP address validation
+                            if socket.inet_aton(ip_address):
+                                # Ignore localhost
+                                if ip_address != '127.0.0.1':
+                                    return ip_address
+                        except socket.error:
+                            pass
+            elif type(networks) is list:
+                for network in networks:
+                    if 'ip-addresses' in network:
+                        for ip_address in network['ip-addresses']:
+                            try:
+                                # IP address validation
+                                if socket.inet_aton(ip_address['ip-address']):
+                                    # Ignore localhost
+                                    if ip_address['ip-address'] != '127.0.0.1':
+                                        return ip_address['ip-address']
+                            except socket.error:
+                                pass
         return None
 
     def openvz_ip_address(self, node, vm):
@@ -264,7 +276,7 @@ def main_list(options, config_path):
             qemu_list = proxmox_api.node_qemu(node)
         except HTTPError as error:
             # the API raises code 595 when target node is unavailable, skip it
-            if error.code == 595:
+            if error.code == 595 or error.code == 596:
                 continue
             # if it was some other error, reraise it
             raise error
